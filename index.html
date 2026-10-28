@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="ru"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Фокус</title>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);--bg:#f6f5f2;--card:#fff;--tx:#1c1c1e;--mu:#7a7a80;--ln:#e4e2dd;--ac:#e5484d;color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#121214;--card:#1d1d20;--tx:#f2f2f3;--mu:#9a9aa1;--ln:#2e2e33;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#121214;--card:#1d1d20;--tx:#f2f2f3;--mu:#9a9aa1;--ln:#2e2e33;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0 auto;background:var(--bg);color:var(--tx);font:16px/1.4 -apple-system,system-ui,"Segoe UI",Roboto,sans-serif;padding:16px 16px calc(84px + env(safe-area-inset-bottom,0px));max-width:520px}
+button,input{font:inherit;color:var(--tx)}
+button{background:var(--card);border:1px solid var(--ln);border-radius:12px;padding:10px 14px;cursor:pointer}
+button:disabled{opacity:.45}
+input{background:var(--card);border:1px solid var(--ln);border-radius:10px;padding:10px;min-width:0}
+.mu{color:var(--mu);font-size:14px}
+.card{background:var(--card);border:1px solid var(--ln);border-radius:16px;padding:14px;margin:12px 0}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 14px}
+.chip{border-radius:999px;padding:8px 14px}
+.chip::before{content:"";display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--c);margin-right:8px}
+.chip.on{border-color:var(--c);box-shadow:0 0 0 2px var(--c) inset;font-weight:600}
+.seg{display:flex;gap:6px;margin:8px 0}
+.seg button{flex:1}
+.seg .on{background:var(--tx);color:var(--bg);border-color:var(--tx)}
+.plan{display:flex;justify-content:center;align-items:center;gap:12px;margin:14px 0}
+.plan input{width:84px;text-align:center;font-size:20px}
+.clk{font-size:72px;font-weight:700;text-align:center;font-variant-numeric:tabular-nums;margin:18px 0}
+.go{width:100%;padding:18px;font-size:20px;font-weight:700;background:var(--ac);border-color:var(--ac);color:#fff}
+.go.stop{background:var(--tx);border-color:var(--tx);color:var(--bg)}
+summary{cursor:pointer}
+.row{display:flex;gap:8px;margin-top:10px}
+.row input{flex:1}
+.nav{display:flex;justify-content:space-between;align-items:center;margin:8px 0}
+.big{font-size:40px;font-weight:700;margin:2px 0 10px}
+.cap{text-transform:capitalize}
+.stack{display:flex;height:12px;border-radius:6px;overflow:hidden;background:var(--ln)}
+.stack i{display:block;height:100%}
+.lg{display:flex;justify-content:space-between;font-size:14px;margin:6px 0 12px}
+.rw{margin:10px 0}
+.rw>div:first-child{display:flex;justify-content:space-between}
+.bar{height:8px;border-radius:4px;background:var(--ln);margin-top:4px;overflow:hidden}
+.bar i{display:block;height:100%}
+.wk{display:flex;gap:6px;height:90px;align-items:flex-end;margin-top:16px}
+.wk>div{flex:1;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center}
+.wk i{display:block;width:100%;background:var(--ac);border-radius:4px 4px 0 0;min-height:2px}
+.wk b{font-size:11px;color:var(--mu);font-weight:400;margin-top:4px}
+.ses{display:grid;grid-template-columns:48px 1fr auto 36px;gap:6px;align-items:center;padding:6px 0;border-bottom:1px solid var(--ln)}
+.ses:last-child{border:0}
+.crow{display:flex;gap:6px;align-items:center;margin:8px 0}
+.crow .nm{flex:1}
+.crow input[type=color]{width:42px;height:42px;padding:2px}
+.mini{padding:8px 10px;font-size:14px}
+.x{color:var(--mu)}
+#tabs{position:fixed;left:0;right:0;bottom:0;display:flex;background:var(--card);border-top:1px solid var(--ln);padding-bottom:env(safe-area-inset-bottom,0px)}
+#tabs button{flex:1;border:0;border-radius:0;background:none;padding:12px 4px;font-size:13px;color:var(--mu)}
+#tabs button.on{color:var(--ac);font-weight:700}
+</style></head>
+<body>
+<div id="v"></div>
+<nav id="tabs"><button data-t="timer">⏱<br>Таймер</button><button data-t="report">📊<br>Отчёт</button><button data-t="cats">🏷<br>Категории</button></nav>
+<script>
+const KEY='focus-v1';
+const defC=[["Немецкий","#3b82f6",1],["Голос","#a855f7",1],["Зарядка","#22c55e",1],["Чтение","#14b8a6",1],["3D Max","#f59e0b",1],["Instagram","#ef4444",0]];
+function load(){try{const j=JSON.parse(localStorage.getItem(KEY));if(j&&j.cats)return j}catch(e){}
+return{cats:defC.map((c,i)=>({id:'c'+i,name:c[0],color:c[1],good:c[2]})),sessions:[],run:null,plan:25,mode:'pomo',sel:'c0'}}
+let S=load();S.brk=S.brk||5;S.lng=S.lng||15;
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let tab='timer',rmode='day',off=0;
+const cat=id=>S.cats.find(c=>c.id===id)||{name:'Без категории',color:'#888',good:0};
+const fmt=s=>{const m=Math.round(s/60),h=Math.floor(m/60);return h?h+' ч '+(m%60)+' мин':m+' мин'};
+const p2=n=>String(n).padStart(2,'0');
+const clock=s=>{s=Math.max(0,Math.ceil(s));const h=Math.floor(s/3600);return(h?h+':':'')+p2(Math.floor(s%3600/60))+':'+p2(s%60)};
+const dkey=t=>{const d=new Date(t);return d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate())};
+const dayAt=o=>{const d=new Date();d.setHours(12,0,0,0);d.setDate(d.getDate()+o);return d};
+const elapsed=()=>S.run?(Date.now()-S.run.t)/1000:0;
+const npom=()=>S.sessions.filter(s=>s.p&&dkey(s.t)===dkey(Date.now())).length;
+
+function start(){S.run={cat:S.sel,mode:S.mode,t:Date.now(),plan:Math.max(1,S.plan)*60};save();render()}
+function finish(full){const r=S.run;if(!r)return;const dur=full?r.plan:Math.floor(elapsed());S.run=null;
+if(dur>=10)S.sessions.push({id:Date.now(),cat:r.cat,t:r.t,dur,p:full&&r.mode==='pomo'?1:0});
+if(full&&r.mode==='pomo'){const n=npom();S.run={cat:r.cat,mode:'brk',t:Date.now(),plan:(n%4===0?S.lng:S.brk)*60}}
+save();if(full)alarm();render()}
+function alarm(){try{navigator.vibrate&&navigator.vibrate([300,150,300])}catch(e){}
+try{const a=new(window.AudioContext||window.webkitAudioContext)(),o=a.createOscillator();o.connect(a.destination);o.frequency.value=880;o.start();o.stop(a.currentTime+.4)}catch(e){}}
+function tick(){const e=$('#clk');if(!e)return;const r=S.run;
+e.textContent=r?(r.mode==='sw'?clock(elapsed()):clock(r.plan-elapsed())):(S.mode==='pomo'?clock(S.plan*60):'00:00')}
+setInterval(()=>{const r=S.run;if(r&&r.mode!=='sw'&&elapsed()>=r.plan){if(r.mode==='pomo')finish(true);else{S.run=null;save();alarm();render()}return}tick()},500);
+
+function vTimer(){const r=S.run,mode=r?r.mode:S.mode,sel=r?r.cat:S.sel,d=r?'disabled':'';
+return `<div class="chips">${S.cats.map(c=>`<button class="chip ${c.id===sel?'on':''}" data-a="sel" data-id="${c.id}" ${d} style="--c:${c.color}">${esc(c.name)}</button>`).join('')}</div>
+<div class="seg"><button class="${mode==='pomo'?'on':''}" data-a="mode" data-v="pomo" ${d}>Помидор</button><button class="${mode==='sw'?'on':''}" data-a="mode" data-v="sw" ${d}>Секундомер</button></div>
+${mode==='pomo'?`<div class="plan"><button data-a="plan" data-v="-5" ${d}>−</button><label><input id="pl" type="number" inputmode="numeric" min="1" max="240" value="${S.plan}" ${d}> мин</label><button data-a="plan" data-v="5" ${d}>+</button></div>`:''}
+<div class="mu" style="text-align:center">${mode==='brk'?'☕ Отдых: встань, пройдись, попей воды':'🍅 Помидоров сегодня: '+npom()}</div>
+<div id="clk" class="clk"></div>
+<button class="go ${r?'stop':''}" data-a="${!r?'start':mode==='brk'?'skip':'stop'}">${!r?'Старт':mode==='brk'?'Пропустить отдых':'Стоп и сохранить'}</button>
+${mode==='pomo'&&!r?`<div class="plan mu" style="flex-wrap:wrap;font-size:14px">Отдых <input id="br" style="width:64px;font-size:16px" type="number" inputmode="numeric" min="1" max="60" value="${S.brk}"> мин · длинный (каждый 4-й) <input id="lg" style="width:64px;font-size:16px" type="number" inputmode="numeric" min="1" max="60" value="${S.lng}"> мин</div>`:''}
+<details class="card"><summary>Добавить вручную</summary><div class="row"><input id="mm" type="number" inputmode="numeric" placeholder="минут" min="1"><button data-a="manual">В «${esc(cat(sel).name)}»</button></div></details>
+<p class="mu">Время считается от момента старта, так что можно сворачивать приложение. Сигнал в конце сработает, когда вернёшься в приложение.</p>`}
+
+function vReport(){
+const days=rmode==='day'?[dayAt(off)]:Array.from({length:7},(_,i)=>dayAt(off-6+i));
+const keys=days.map(d=>dkey(d)),ss=S.sessions.filter(s=>keys.includes(dkey(s.t))).sort((a,b)=>a.t-b.t);
+const tot=ss.reduce((a,s)=>a+s.dur,0),by={};ss.forEach(s=>by[s.cat]=(by[s.cat]||0)+s.dur);
+const good=ss.filter(s=>cat(s.cat).good).reduce((a,s)=>a+s.dur,0),bad=tot-good;
+const rows=Object.entries(by).sort((a,b)=>b[1]-a[1]);
+const L=(d,o)=>d.toLocaleDateString('ru-RU',o);
+const title=rmode==='day'?L(days[0],{weekday:'long',day:'numeric',month:'long'}):L(days[0],{day:'numeric',month:'short'})+' — '+L(days[6],{day:'numeric',month:'short'});
+const dt=keys.map(k=>ss.filter(s=>dkey(s.t)===k).reduce((a,s)=>a+s.dur,0)),mx=Math.max(...dt,1);
+const wk=`<div class="wk">${dt.map((v,i)=>`<div><i style="height:${v/mx*100}%"></i><b>${L(days[i],{weekday:'short'})}</b></div>`).join('')}</div>`;
+return `<div class="seg"><button class="${rmode==='day'?'on':''}" data-a="rmode" data-v="day">День</button><button class="${rmode==='week'?'on':''}" data-a="rmode" data-v="week">Неделя</button></div>
+<div class="nav"><button data-a="off" data-v="-1">‹</button><span class="mu">${off===0?'сегодня':''}</span><button data-a="off" data-v="1" ${off>=0?'disabled':''}>›</button></div>
+<div class="card"><div class="mu cap">${esc(title)}</div><div class="big">${tot?fmt(tot):'Пока пусто'}</div>
+${ss.some(s=>s.p)?`<div class="mu" style="margin:-6px 0 10px">🍅 Помидоров: ${ss.filter(s=>s.p).length}</div>`:''}
+${tot?`<div class="stack"><i style="width:${good/tot*100}%;background:#22c55e"></i><i style="width:${bad/tot*100}%;background:#ef4444"></i></div><div class="lg"><span>🟢 Полезное: ${fmt(good)}</span><span>🔴 Слив: ${fmt(bad)}</span></div>`:''}
+${rows.map(([id,v])=>`<div class="rw"><div><span>${esc(cat(id).name)}</span><b>${fmt(v)}</b></div><div class="bar"><i style="width:${v/tot*100}%;background:${cat(id).color}"></i></div></div>`).join('')}
+${rmode==='week'?wk:''}</div>
+${rmode==='day'&&ss.length?`<div class="card">${ss.map(s=>`<div class="ses"><span class="mu">${new Date(s.t).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'})}</span><span>${esc(cat(s.cat).name)}</span><span>${fmt(s.dur)}</span><button class="mini x" data-a="rm" data-id="${s.id}">✕</button></div>`).join('')}</div>`:''}`}
+
+function vCats(){return `<div class="card">${S.cats.map(c=>`<div class="crow"><input type="color" value="${c.color}" data-a="color" data-id="${c.id}"><input class="nm" value="${esc(c.name)}" data-a="name" data-id="${c.id}"><button class="mini" data-a="good" data-id="${c.id}">${c.good?'Полезное':'Слив'}</button><button class="mini x" data-a="del" data-id="${c.id}">✕</button></div>`).join('')}</div>
+<div class="row"><input id="nc" placeholder="Новая категория"><button data-a="addcat">Добавить</button></div>
+<p class="mu">Пометка «Полезное» или «Слив» нужна только для итоговой полоски в отчёте. Удаление категории не стирает записанное время.</p>`}
+
+function render(){if(!S.cats.find(c=>c.id===S.sel))S.sel=S.cats[0].id;
+$('#v').innerHTML=tab==='timer'?vTimer():tab==='report'?vReport():vCats();
+document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===tab));tick()}
+
+document.addEventListener('click',e=>{const b=e.target.closest('[data-a],[data-t]');if(!b||b.disabled)return;
+if(b.dataset.t){tab=b.dataset.t;render();return}
+const a=b.dataset.a,v=b.dataset.v,id=b.dataset.id;
+if(a==='sel')S.sel=id;
+else if(a==='mode')S.mode=v;
+else if(a==='plan')S.plan=Math.min(240,Math.max(1,S.plan+ +v));
+else if(a==='start')return start();
+else if(a==='stop')return finish(false);
+else if(a==='skip')S.run=null;
+else if(a==='manual'){const m=+$('#mm').value;if(m>0){const t=Date.now();S.sessions.push({id:t,cat:S.sel,t,dur:m*60})}}
+else if(a==='rmode')rmode=v;
+else if(a==='off')off=Math.min(0,off+ +v*(rmode==='day'?1:7));
+else if(a==='good'){const c=S.cats.find(c=>c.id===id);c.good=c.good?0:1}
+else if(a==='del'){if(S.cats.length>1)S.cats=S.cats.filter(c=>c.id!==id)}
+else if(a==='addcat'){const n=$('#nc').value.trim();if(n)S.cats.push({id:'c'+Date.now(),name:n,color:['#06b6d4','#ec4899','#84cc16','#f97316','#8b5cf6'][S.cats.length%5],good:1})}
+else if(a==='rm')S.sessions=S.sessions.filter(s=>s.id!=id);
+save();render()});
+document.addEventListener('change',e=>{const el=e.target,a=el.dataset.a;
+if(el.id==='pl'){S.plan=Math.min(240,Math.max(1,+el.value||25));save();tick();return}
+if(el.id==='br'||el.id==='lg'){S[el.id==='br'?'brk':'lng']=Math.min(60,Math.max(1,+el.value||5));save();return}
+const c=S.cats.find(c=>c.id===el.dataset.id);if(!c)return;
+if(a==='color')c.color=el.value;if(a==='name')c.name=el.value.trim()||c.name;save()});
+render();
+</script></body></html>
